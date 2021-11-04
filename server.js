@@ -57,12 +57,14 @@ async function getResultEmbed(url_s) {
     const doc = libxmljs.parseXml(response.rawBody);
     desc = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]').text();
   }
+  const imUrl = new URL(result.ogImage?.url, (new URL(result.ogUrl)).origin);
+  console.log(imUrl);
   return new MessageEmbed()
     .setColor("#0099ff")
     .setTitle(result.ogTitle)
     .setURL(result.ogUrl)
     .setDescription(desc)
-    .setThumbnail(result.ogImage?.url);
+    .setThumbnail(imUrl.href);
 }
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {

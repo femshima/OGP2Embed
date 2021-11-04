@@ -1,7 +1,7 @@
 {
-  "name": "glitch-mvp-node",
+  "name": "ogp2embed",
   "version": "0.0.1",
-  "description": "A simple Node app built on fastify, instantly up and running.",
+  "description": "Extract url from Discord messages, fetches information of the site, and sends it to the channel as an embed.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -15,12 +15,13 @@
     "node": "16.x"
   },
   "repository": {
-    "url": "https://glitch.com/edit/#!/glitch-mvp-node"
+    "url": "https://github.com/femshima/OGP2Embed"
   },
   "license": "MIT",
   "keywords": [
     "node",
-    "glitch",
-    "express"
+    "discord.js",
+    "discord",
+    "ogp"
   ]
 }

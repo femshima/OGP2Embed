@@ -27,20 +27,30 @@ function onMessage(msg) {
   if (m.length === 0) return;
 
   const urls = m.filter(match => match.length > 0).map(match => match[0]);
+  const placeHolderEmbeds = urls.map(url => {
+    return new MessageEmbed()
+      .setColor("#0099ff")
+      .setTitle(decodeURI(url));
+  });
   const placeHolder = msg.channel.send({
-    embeds: urls.map(url => {
-      return new MessageEmbed()
-        .setColor("#0099ff")
-        .setTitle(decodeURI(url));
-    })
+    embeds: placeHolderEmbeds
   });
   const PromiseArray = urls.map(url => getResultEmbed(url));
-  Promise.all(PromiseArray).then(res => {
-    const embeds = res.filter(r => r !== null);
+  Promise.allSettled(PromiseArray).then(res => {
+    const embeds = res.map((r, i) => {
+      if (r.status === "fulfilled") {
+        return r.value;
+      } else {
+        return placeHolderEmbeds[i];
+      }
+    });
+    if (embeds.length === 0) {
+      return;
+    }
     placeHolder.then(phMessage => {
       msg.suppressEmbeds(true);
       phMessage.edit({ embeds });
-    })
+    });
   });
 }
 
@@ -58,7 +68,6 @@ async function getResultEmbed(url_s) {
     desc = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]').text();
   }
   const imUrl = new URL(result.ogImage?.url, (new URL(result.ogUrl)).origin);
-  console.log(imUrl);
   return new MessageEmbed()
     .setColor("#0099ff")
     .setTitle(result.ogTitle)

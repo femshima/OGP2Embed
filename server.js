@@ -10,7 +10,7 @@ if (process.env.NODE_ENV === "development") {
   require('dotenv').config();
 }
 
-const libxmljs = require("libxmljs");
+const libxmljs = require("libxmljs2");
 
 client.on("ready", () => {
   console.log("Bot準備完了～");

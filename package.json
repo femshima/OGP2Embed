@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "discord.js": "^13.3.1",
-    "libxmljs": "^0.19.7",
+    "libxmljs2": "^0.29.0",
     "open-graph-scraper": "^4.10.0"
   },
   "engines": {

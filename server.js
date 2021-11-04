@@ -8,12 +8,8 @@ const client = new Client({
 const ogs = require("open-graph-scraper");
 const libxmljs = require("libxmljs");
 
-client.on("ready", message => {
+client.on("ready", () => {
   console.log("Bot準備完了～");
-  /*client.user.setPresence({
-    activities: [{ name: "!helpでヘルプを参照できます", type: "PLAYING" }],
-    status: "online"
-  });*/
 });
 
 client.on("messageCreate", onMessage);
@@ -51,6 +47,8 @@ function onMessage(msg) {
     sentmsg.then(d => d.edit({ embeds: [embed] }));
   });
 }
+
+
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {
   console.log("DISCORD_BOT_TOKENが設定されていません。");

@@ -1,6 +1,7 @@
 let domainTree = {};
 require("fs").readdirSync("site-specific").forEach(function (file) {
     if (file === "index.js") return;
+    if (file === "default.js") return;
     const site = require("./" + file);
     if (typeof site.hostname !== "string") return;
     let currentTree = domainTree;

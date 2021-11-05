@@ -1,27 +1,38 @@
-const axios = require("axios");
+const got = require("got");
+const cache = require("../cache");
+
 const libxmljs = require("libxmljs2");
 exports.hostname = "doi.org";
-exports.handle = async (origurl,before,after) => {
-    const cref = await axios.get(
-        "https://api.crossref.org/works" + origurl.pathname,
-        { headers: { 'User-Agent': process.env.UserAgent } }
+exports.handle = async (origurl, before, after) => {
+    console.log(cache.entries());
+    const crefResponse = await got(
+        {
+            url: "https://api.crossref.org/works" + origurl.pathname,
+            headers: {
+                'user-agent': process.env.UserAgent,
+                "cache-control": 'no-cache',
+            },
+            cache: cache,
+            responseType: "json"
+        }
     );
-    console.log(JSON.stringify(cref.data.message));
-    if (cref.data.status !== "ok") return;
+    console.log(crefResponse.isFromCache);
+    const cref = crefResponse.body;
+    if (cref.status !== "ok") return;
     let title, url, desc;
-    desc = getAbstract(cref.data.message.abstract);
-    url = cref.data.message.URL;
-    title = cref.data.message.title[0];
+    desc = getAbstract(cref.message.abstract);
+    url = cref.message.URL;
+    title = cref.message.title[0];
 
-    let containerTitle = cref.data.message["container-title"];
-    let issued = cref.data.message.issued["date-parts"][0];
-    let page = cref.data.message.page ?? "";
-    let volume = cref.data.message.volume ?? "";
-    let issue = cref.data.message.issue ?? "";
+    let containerTitle = cref.message["container-title"];
+    let issued = cref.message.issued["date-parts"][0];
+    let page = cref.message.page ?? "";
+    let volume = cref.message.volume ?? "";
+    let issue = cref.message.issue ?? "";
 
     let fields = [
         {
-            name: cref.data.message.author.reduce((str, a) => {
+            name: cref.message.author.reduce((str, a) => {
                 let suffix = a.suffix ?? "";
                 let prefix = a.prefix ?? "";
                 let given = a.given ?? "";

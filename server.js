@@ -21,7 +21,6 @@ function onMessage(msg) {
   if (msg.author.bot) return;
   let defaultEmbedsDict = {};
   AddEmbeds(defaultEmbedsDict, msg.embeds);
-  msg.suppressEmbeds(true);
 
   const m = [...msg.content.matchAll(UrlRegex)];
   if (m.length === 0) return;
@@ -38,11 +37,17 @@ function onMessage(msg) {
   AddEmbeds(placeHolderEmbedsDict, placeHolderEmbeds);
   defaultEmbedsDict = { ...placeHolderEmbedsDict, ...defaultEmbedsDict };
 
-  const placeHolder = msg.channel.send({
-    embeds: placeHolderEmbeds
-  });
 
   const PromiseArray = urls.map(url => siteSpecific(url));
+  let placeHolder;
+  if (PromiseArray.every(p => p === false)) {
+    msg.suppressEmbeds(false);
+    return;
+  } else {
+    placeHolder = msg.channel.send({
+      embeds: placeHolderEmbeds
+    });
+  }
   Promise.allSettled(PromiseArray).then(res => {
     AddEmbeds(defaultEmbedsDict, msg.embeds);
     msg.suppressEmbeds(true);
@@ -57,17 +62,15 @@ function onMessage(msg) {
         return embed.setTitle(decodeURI(embed.url));
       }
     });
-    if (embeds.length === 0 || !isEmbedNeeded) {
-      msg.suppressEmbeds(false);
-      placeHolder.then(phMessage => {
+    placeHolder.then(phMessage => {
+      if (embeds.length === 0 || !isEmbedNeeded) {
+        msg.suppressEmbeds(false);
         phMessage.delete();
-      });
-    } else {
-      placeHolder.then(phMessage => {
+      } else {
         msg.suppressEmbeds(true);
         phMessage.edit({ embeds });
-      });
-    }
+      }
+    });
   });
 }
 

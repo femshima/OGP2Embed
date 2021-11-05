@@ -4,7 +4,6 @@ const client = new Client({
   partials: ["MESSAGE"]
 });
 
-const ogs = require("open-graph-scraper");
 if (process.env.NODE_ENV === "development") {
   require('dotenv').config();
 }
@@ -20,7 +19,10 @@ const UrlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()
 
 function onMessage(msg) {
   if (msg.author.bot) return;
+  let defaultEmbedsDict = {};
+  AddEmbeds(defaultEmbedsDict, msg.embeds);
   msg.suppressEmbeds(true);
+
   const m = [...msg.content.matchAll(UrlRegex)];
   if (m.length === 0) return;
 
@@ -28,48 +30,53 @@ function onMessage(msg) {
   const placeHolderEmbeds = urls.map(url => {
     return new MessageEmbed()
       .setColor("#0099ff")
+      .setURL(url)
       .setTitle(decodeURI(url));
   });
+
+  let placeHolderEmbedsDict = {};
+  AddEmbeds(placeHolderEmbedsDict, placeHolderEmbeds);
+  defaultEmbedsDict = { ...placeHolderEmbedsDict, ...defaultEmbedsDict };
+
   const placeHolder = msg.channel.send({
     embeds: placeHolderEmbeds
   });
-  const PromiseArray = urls.map(url => getResultEmbed(url));
+
+  const PromiseArray = urls.map(url => siteSpecific(url));
   Promise.allSettled(PromiseArray).then(res => {
+    AddEmbeds(defaultEmbedsDict, msg.embeds);
+    msg.suppressEmbeds(true);
+    let isEmbedNeeded = false;
     const embeds = res.map((r, i) => {
-      if (r.status === "fulfilled") {
+      if (r.status === "fulfilled" && r.value) {
+        isEmbedNeeded = true;
         return r.value;
       } else {
-        console.log(r.reason);
-        return placeHolderEmbeds[i];
+        if (r.reason) console.log(r.reason);
+        const embed = defaultEmbedsDict[urls[i]];
+        return embed.setTitle(decodeURI(embed.url));
       }
     });
-    if (embeds.length === 0) {
-      return;
+    if (embeds.length === 0 || !isEmbedNeeded) {
+      msg.suppressEmbeds(false);
+      placeHolder.then(phMessage => {
+        phMessage.delete();
+      });
+    } else {
+      placeHolder.then(phMessage => {
+        msg.suppressEmbeds(true);
+        phMessage.edit({ embeds });
+      });
     }
-    placeHolder.then(phMessage => {
-      msg.suppressEmbeds(true);
-      phMessage.edit({ embeds });
-    });
   });
 }
 
-async function getResultEmbed(url_s) {
-  let url = new URL(url_s);
-  const { error, result, response } = await ogs({ url: url_s });
-  if (error) return null;
-  let data = {
-    title: result.ogTitle,
-    url: result.ogUrl,
-    desc: result.ogDescription ?? "",
-    image: new URL(result.ogImage?.url, (new URL(result.ogUrl)).origin)
-  };
-  data = siteSpecific(url.hostname, data, response);
-  return new MessageEmbed()
-    .setColor("#0099ff")
-    .setTitle(data.title)
-    .setURL(data.url)
-    .setDescription(data.desc)
-    .setThumbnail(data.image);
+
+
+function AddEmbeds(EmbedDict, embeds) {
+  embeds.forEach(embed => {
+    EmbedDict[embed.url] = embed;
+  });
 }
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {

@@ -1,8 +1,8 @@
 const libxmljs = require("libxmljs2");
 exports.hostname = "wikipedia.org";
-exports.handle = (base, response) => {
-    let { title, url, desc, image } = base;
-    const doc = libxmljs.parseXml(response.rawBody);
+exports.handle = async (origurl, before, after) => {
+    let { title, url, desc, image, _ogresponse } = await before(origurl);
+    const doc = libxmljs.parseXml(_ogresponse.rawBody);
     desc = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]').text();
-    return { title, url, desc, image };
+    return after({ title, url, desc, image });
 };

@@ -1,4 +1,3 @@
-const http = require("http");
 const { Client, Intents, MessageEmbed } = require("discord.js");
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -9,8 +8,7 @@ const ogs = require("open-graph-scraper");
 if (process.env.NODE_ENV === "development") {
   require('dotenv').config();
 }
-
-const libxmljs = require("libxmljs2");
+const siteSpecific = require("./site-specific/index");
 
 client.on("ready", () => {
   console.log("Bot準備完了～");
@@ -41,6 +39,7 @@ function onMessage(msg) {
       if (r.status === "fulfilled") {
         return r.value;
       } else {
+        console.log(r.reason);
         return placeHolderEmbeds[i];
       }
     });
@@ -58,22 +57,19 @@ async function getResultEmbed(url_s) {
   let url = new URL(url_s);
   const { error, result, response } = await ogs({ url: url_s });
   if (error) return null;
-  let desc = result.ogDescription ?? "";
-  if (
-    desc === "" &&
-    (url.hostname.endsWith(".wikipedia.org") ||
-      url.hostname === "wikipedia.org")
-  ) {
-    const doc = libxmljs.parseXml(response.rawBody);
-    desc = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]').text();
-  }
-  const imUrl = new URL(result.ogImage?.url, (new URL(result.ogUrl)).origin);
+  let data = {
+    title: result.ogTitle,
+    url: result.ogUrl,
+    desc: result.ogDescription ?? "",
+    image: new URL(result.ogImage?.url, (new URL(result.ogUrl)).origin)
+  };
+  data = siteSpecific(url.hostname, data, response);
   return new MessageEmbed()
     .setColor("#0099ff")
-    .setTitle(result.ogTitle)
-    .setURL(result.ogUrl)
-    .setDescription(desc)
-    .setThumbnail(imUrl.href);
+    .setTitle(data.title)
+    .setURL(data.url)
+    .setDescription(data.desc)
+    .setThumbnail(data.image);
 }
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {

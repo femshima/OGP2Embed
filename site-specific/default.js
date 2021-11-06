@@ -3,11 +3,12 @@ const { MessageEmbed } = require("discord.js");
 exports.before = async function before(url) {
     const { error, result, response } = await ogs({ url: url.href });
     if (error) Promise.reject("OGS Failed");
+    const sendURL = new URL(result.ogUrl ?? url);
     let data = {
         title: result.ogTitle,
-        url: result.ogUrl,
+        url: sendURL,
         desc: result.ogDescription ?? "",
-        image: new URL(result.ogImage?.url, (new URL(result.ogUrl)).origin),
+        image: new URL(result.ogImage?.url, sendURL.origin),
         fields: null,
         footer: null,
         _ogresult: result,

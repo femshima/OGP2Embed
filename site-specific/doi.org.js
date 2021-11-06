@@ -4,7 +4,6 @@ const cache = require("../cache");
 const libxmljs = require("libxmljs2");
 exports.hostname = "doi.org";
 exports.handle = async (origurl, before, after) => {
-    console.log(cache.entries());
     const crefResponse = await got(
         {
             url: "https://api.crossref.org/works" + origurl.pathname,
@@ -59,6 +58,14 @@ exports.handle = async (origurl, before, after) => {
     return after({ title, url, desc, fields });
 };
 function getAbstract(desc) {
-    const doc = libxmljs.parseXml(desc);
-    return doc.root().text();
+    if (typeof desc !== "string") {
+        return desc;
+    }
+    try {
+        const doc = libxmljs.parseXml(`<abstract>${desc}</abstract>`);
+        return doc.root().text();
+    } catch (e) {
+        console.debug(e);
+        return desc;
+    }
 }

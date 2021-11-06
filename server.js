@@ -40,7 +40,12 @@ function onMessage(msg) {
 
   const PromiseArray = urls.map(url => siteSpecific(url));
   let placeHolder;
-  if (PromiseArray.every(p => p === false)) {
+  /*
+    ・すべてのEmbedがデフォルトを流用する状態になっている場合
+    ・URLが10個以上の場合(DiscordのEmbedでは10個を超えるEmbedを送信できないようなので)
+    はデフォルトのEmbedを使い、ボットによる追加はしない
+  */
+  if (PromiseArray.every(p => p === false) || urls.length > 10) {
     msg.suppressEmbeds(false);
     return;
   } else {

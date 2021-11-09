@@ -1,3 +1,4 @@
+// @ts-expect-error ts-migrate(2451) FIXME: Cannot redeclare block-scoped variable 'MessageEmb... Remove this comment to see the full error message
 const { Client, Intents, MessageEmbed } = require("discord.js");
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -16,10 +17,10 @@ client.on("messageCreate", onMessage);
 
 const UrlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?!&//=]*)/g;
 
-function onMessage(msg) {
+function onMessage(msg: any) {
   if (msg.author.bot) return;
   let processedFlag = false;
-  const onMessageEmbedAdd = async embeds => {
+  const onMessageEmbedAdd = async (embeds: any) => {
     if (processedFlag) return;
     processedFlag = true;
 
@@ -29,7 +30,7 @@ function onMessage(msg) {
     const placeHolderEmbeds = embeds;
 
 
-    const PromiseArray = embeds.map(embed => {
+    const PromiseArray = embeds.map((embed: any) => {
       if (embed.video || embed.author) {
         return false;
       } else {
@@ -42,7 +43,7 @@ function onMessage(msg) {
       はデフォルトのEmbedを使い、ボットによる追加はしない
     */
     let placeHolder;
-    if (PromiseArray.every(p => p === false)) {
+    if (PromiseArray.every((p: any) => p === false)) {
       return;
     } else {
       msg.suppressEmbeds(true);
@@ -54,7 +55,8 @@ function onMessage(msg) {
 
     const res = await Promise.allSettled(PromiseArray)
     let isEmbedNeeded = false;
-    const resultEmbeds = res.map((r, i) => {
+    // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
+    const resultEmbeds = res.map((r: any, i: any) => {
       if (r.status === "fulfilled" && r.value) {
         isEmbedNeeded = true;
         return r.value;
@@ -82,7 +84,7 @@ function onMessage(msg) {
   return;
 }
 
-function registerOnMessageEmbedAdd(msg, fn) {
+function registerOnMessageEmbedAdd(msg: any, fn: any) {
   msg._embeds = msg.embeds;
   delete msg.embeds;
   Object.defineProperty(msg, "embeds", {
@@ -90,7 +92,7 @@ function registerOnMessageEmbedAdd(msg, fn) {
       if (
         (this._embeds.length !== newEmbeds.length) ||
         (this._embeds.length > 0 &&
-          !this._embeds.every((embed, i) => newEmbeds[i] && embed.equals(newEmbeds[i])))
+          !this._embeds.every((embed: any, i: any) => newEmbeds[i] && embed.equals(newEmbeds[i])))
       ) {
         fn(newEmbeds);
       }
@@ -102,7 +104,7 @@ function registerOnMessageEmbedAdd(msg, fn) {
   })
 }
 
-function AddEmbeds(EmbedDict, embeds) {
+function AddEmbeds(EmbedDict: any, embeds: any) {
   if (!Array.isArray(embeds)) return;
   embeds.forEach(embed => {
     EmbedDict[embed.url] = embed;

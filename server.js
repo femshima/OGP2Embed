@@ -78,7 +78,25 @@ function onMessage(msg) {
   });
 }
 
-
+function registerOnMessageEmbedAdd(msg, fn) {
+  msg._embeds = msg.embeds;
+  delete msg.embeds;
+  Object.defineProperty(msg, "embeds", {
+    set: function (newEmbeds) {
+      if (
+        (this._embeds.length !== newEmbeds.length) ||
+        (this._embeds.length > 0 &&
+          !this._embeds.every((embed, i) => newEmbeds[i] && embed.equals(newEmbeds[i])))
+      ) {
+        fn(newEmbeds);
+      }
+      this._embeds = newEmbeds
+    },
+    get: function () {
+      return this._embeds;
+    }
+  })
+}
 
 function AddEmbeds(EmbedDict, embeds) {
   embeds.forEach(embed => {

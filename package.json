@@ -12,7 +12,8 @@
     "dotenv": "^10.0.0",
     "got": "^11.8.2",
     "libxmljs2": "^0.29.0",
-    "open-graph-scraper": "^4.10.0"
+    "open-graph-scraper": "^4.10.0",
+    "ts-migrate": "^0.1.26"
   },
   "engines": {
     "node": "16.x"

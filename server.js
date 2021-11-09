@@ -19,63 +19,74 @@ const UrlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()
 function onMessage(msg) {
   if (msg.author.bot) return;
   let defaultEmbedsDict = {};
-  AddEmbeds(defaultEmbedsDict, msg.embeds);
-
-  const m = [...msg.content.matchAll(UrlRegex)];
-  if (m.length === 0) return;
-
-  const urls = m.filter(match => match.length > 0).map(match => match[0]);
-  const placeHolderEmbeds = urls.map(url => {
-    return new MessageEmbed()
-      .setColor("#0099ff")
-      .setURL(url)
-      .setTitle(decodeURI(url));
-  });
-
-  let placeHolderEmbedsDict = {};
-  AddEmbeds(placeHolderEmbedsDict, placeHolderEmbeds);
-  defaultEmbedsDict = { ...placeHolderEmbedsDict, ...defaultEmbedsDict };
+  let processedFlag = false;
+  const onMessageEmbedAdd = async Nembeds => {
+    if (processedFlag) return;
+    processedFlag = true;
 
 
-  const PromiseArray = urls.map(url => siteSpecific(url));
-  let placeHolder;
-  /*
-    ・すべてのEmbedがデフォルトを流用する状態になっている場合
-    ・URLが10個以上の場合(DiscordのEmbedでは10個を超えるEmbedを送信できないようなので)
-    はデフォルトのEmbedを使い、ボットによる追加はしない
-  */
-  if (PromiseArray.every(p => p === false) || urls.length > 10) {
-    msg.suppressEmbeds(false);
-    return;
-  } else {
-    placeHolder = msg.channel.send({
-      embeds: placeHolderEmbeds
+    AddEmbeds(defaultEmbedsDict, Nembeds);
+
+    const embeds = Object.values(defaultEmbedsDict);
+
+    console.log("onEmbedAdded:", embeds);
+
+
+    const placeHolderEmbeds = embeds;
+
+
+    const PromiseArray = embeds.map(embed => {
+      if (embed.video || embed.author) {
+        return false;
+      } else {
+        return siteSpecific(embed.url);
+      }
     });
-  }
-  Promise.allSettled(PromiseArray).then(res => {
-    AddEmbeds(defaultEmbedsDict, msg.embeds);
-    msg.suppressEmbeds(true);
+
+    /*
+      ・すべてのEmbedがデフォルトを流用する状態になっている場合
+      はデフォルトのEmbedを使い、ボットによる追加はしない
+    */
+    let placeHolder;
+    if (PromiseArray.every(p => p === false)) {
+      msg.suppressEmbeds(false);
+      return;
+    } else {
+      msg.suppressEmbeds(true);
+      placeHolder = msg.channel.send({
+        embeds: placeHolderEmbeds
+      });
+    }
+
+
+    const res = await Promise.allSettled(PromiseArray)
     let isEmbedNeeded = false;
-    const embeds = res.map((r, i) => {
+    const resultEmbeds = res.map((r, i) => {
       if (r.status === "fulfilled" && r.value) {
         isEmbedNeeded = true;
         return r.value;
       } else {
         if (r.reason) console.log(r.reason);
-        const embed = defaultEmbedsDict[urls[i]];
+        const embed = embeds[i];
         return embed.setTitle(decodeURI(embed.url));
       }
     });
-    placeHolder.then(phMessage => {
-      if (embeds.length === 0 || !isEmbedNeeded) {
-        msg.suppressEmbeds(false);
-        phMessage.delete();
-      } else {
-        msg.suppressEmbeds(true);
-        phMessage.edit({ embeds });
-      }
-    });
-  });
+
+    const phMessage = await placeHolder
+    if (embeds.length === 0 || !isEmbedNeeded) {
+      msg.suppressEmbeds(false);
+      phMessage.delete();
+    } else {
+      msg.suppressEmbeds(true);
+      phMessage.edit({ embeds: resultEmbeds });
+    }
+  }
+  if (msg.embeds.length > 0) {
+    onMessageEmbedAdd(msg.embeds);
+  } else {
+    registerOnMessageEmbedAdd(msg, onMessageEmbedAdd);
+  }
+  return;
 }
 
 function registerOnMessageEmbedAdd(msg, fn) {
@@ -99,6 +110,7 @@ function registerOnMessageEmbedAdd(msg, fn) {
 }
 
 function AddEmbeds(EmbedDict, embeds) {
+  if (!Array.isArray(embeds)) return;
   embeds.forEach(embed => {
     EmbedDict[embed.url] = embed;
   });

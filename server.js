@@ -18,16 +18,10 @@ const UrlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()
 
 function onMessage(msg) {
   if (msg.author.bot) return;
-  let defaultEmbedsDict = {};
   let processedFlag = false;
-  const onMessageEmbedAdd = async Nembeds => {
+  const onMessageEmbedAdd = async embeds => {
     if (processedFlag) return;
     processedFlag = true;
-
-
-    AddEmbeds(defaultEmbedsDict, Nembeds);
-
-    const embeds = Object.values(defaultEmbedsDict);
 
     console.log("onEmbedAdded:", embeds);
 
@@ -49,7 +43,6 @@ function onMessage(msg) {
     */
     let placeHolder;
     if (PromiseArray.every(p => p === false)) {
-      msg.suppressEmbeds(false);
       return;
     } else {
       msg.suppressEmbeds(true);

@@ -9,7 +9,7 @@ export async function before(url: URL) {
     const { error, result, response } = ogpResult;
     const sendURL = new URL(result.ogUrl ?? url);
     const ogImage = result.ogImage;
-    let imageUrl = "";
+    let imageUrl = null;
     if (typeof ogImage === "string") {
         imageUrl = ogImage;
     } else if (Array.isArray(ogImage)) {
@@ -21,7 +21,7 @@ export async function before(url: URL) {
         title: result.ogTitle,
         url: sendURL,
         desc: result.ogDescription ?? "",
-        image: new URL(imageUrl, sendURL.origin),
+        image: imageUrl && new URL(imageUrl, sendURL.origin),
         fields: null,
         footer: null,
         _ogresult: result,

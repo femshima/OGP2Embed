@@ -24,10 +24,24 @@ function onMessage(msg: Message) {
     if (processedFlag) return;
     processedFlag = true;
 
-    console.log("onEmbedAdded:", embeds);
+    //console.log("onEmbedAdded:", embeds);
 
 
-    const placeHolderEmbeds = embeds;
+    const placeHolderEmbeds = embeds.map(embed => {
+      if (
+        embed.url &&
+        (!embed.title ||
+          (embed.title && embed.url.includes(embed.title.replace("...", ""))))
+      ) {
+        const url = new URL(embed.url);
+        let path = url.pathname.split("/").pop() ?? url.pathname ?? url.href;
+        embed.setTitle(decodeURIComponent(path));
+      }
+      if (!embed.description) {
+        embed.setDescription("Fetching...");
+      }
+      return embed;
+    });
 
 
     const PromiseArray = embeds.map((embed: MessageEmbed) => {

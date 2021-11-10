@@ -1,10 +1,10 @@
-const got = require("got");
+import got from "got";
 const cache = require("../cache");
 
-// @ts-expect-error ts-migrate(2451) FIXME: Cannot redeclare block-scoped variable 'libxmljs'.
-const libxmljs = require("libxmljs2");
-exports.hostname = "doi.org";
-exports.handle = async (origurl: any, before: any, after: any) => {
+
+import libxmljs from "libxmljs2";
+export const hostname = "doi.org";
+export async function handle(origurl: URL, before: Function, after: Function) {
     const crefResponse = await got(
         {
             url: "https://api.crossref.org/works" + origurl.pathname,
@@ -17,7 +17,7 @@ exports.handle = async (origurl: any, before: any, after: any) => {
         }
     );
     console.log(crefResponse.isFromCache);
-    const cref = crefResponse.body;
+    const cref = crefResponse.body as WorksMessage;
     if (cref.status !== "ok") return;
     let title, url, desc;
     desc = getAbstract(cref.message.abstract);
@@ -64,7 +64,12 @@ function getAbstract(desc: any) {
     }
     try {
         const doc = libxmljs.parseXml(`<abstract>${desc}</abstract>`);
-        return doc.root().text();
+        const root = doc.root();
+        if (root === null) {
+            return desc;
+        } else {
+            return root.text();
+        }
     } catch (e) {
         console.debug(e);
         return desc;

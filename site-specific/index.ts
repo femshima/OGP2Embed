@@ -1,39 +1,38 @@
-let domainTree = {};
-require("fs").readdirSync("site-specific").forEach(function (file: any) {
+
+interface domainTreeType {
+    [s: string]: domainTreeType | Function,
+}
+let domainTree: domainTreeType = {};
+require("fs").readdirSync("site-specific").forEach(function (file: string) {
     if (file === "index.js") return;
     if (file === "default.js") return;
     const site = require("./" + file);
     if (typeof site.hostname !== "string") return;
-    let currentTree = domainTree;
-    site.hostname.split(".").reverse().forEach((domain: any, i: any, arr: any) => {
+    let currentTree: domainTreeType = domainTree;
+    site.hostname.split(".").reverse().forEach((domain: string, i: number, arr: string[]) => {
         if (i === arr.length - 1) {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             currentTree[domain] = site.handle;
         }
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (typeof currentTree[domain] === "undefined") {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             currentTree[domain] = {};
         }
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        currentTree = currentTree[domain];
+        currentTree = currentTree[domain] as domainTreeType;
     });
 
 });
 
-const defaultFunctions = require("./default");
+import defaultFunctions from "./default";
 
 console.log(domainTree);
 
-module.exports = function (url_s: any) {
+export default function (url_s: string) {
     let url = new URL(url_s);
-    let currentTree = domainTree;
+    let currentTree: domainTreeType | Function = domainTree;
     url.hostname.split(".").reverse().some(domain => {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        currentTree = currentTree[domain];
         if (typeof currentTree === "function" || typeof currentTree === "undefined") {
             return true;
         }
+        currentTree = currentTree[domain];
         return false;
     });
     if (currentTree instanceof Function) {

@@ -1,13 +1,13 @@
-// @ts-expect-error ts-migrate(2451) FIXME: Cannot redeclare block-scoped variable 'MessageEmb... Remove this comment to see the full error message
-const { Client, Intents, MessageEmbed } = require("discord.js");
+import { Client, Intents, MessageEmbed, Message } from "discord.js";
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
   partials: ["MESSAGE"]
 });
 
-require('dotenv').config();
+import {config as dotenvconfig} from 'dotenv';
+dotenvconfig();
 
-const siteSpecific = require("./site-specific/index");
+import siteSpecific from "./site-specific/index";
 
 client.on("ready", () => {
   console.log("Bot準備完了～");
@@ -17,10 +17,10 @@ client.on("messageCreate", onMessage);
 
 const UrlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?!&//=]*)/g;
 
-function onMessage(msg: any) {
+function onMessage(msg: Message) {
   if (msg.author.bot) return;
   let processedFlag = false;
-  const onMessageEmbedAdd = async (embeds: any) => {
+  const onMessageEmbedAdd = async (embeds: MessageEmbed[]) => {
     if (processedFlag) return;
     processedFlag = true;
 
@@ -30,8 +30,8 @@ function onMessage(msg: any) {
     const placeHolderEmbeds = embeds;
 
 
-    const PromiseArray = embeds.map((embed: any) => {
-      if (embed.video || embed.author) {
+    const PromiseArray = embeds.map((embed: MessageEmbed) => {
+      if (embed.video || embed.author || !embed.url) {
         return false;
       } else {
         return siteSpecific(embed.url);
@@ -55,15 +55,20 @@ function onMessage(msg: any) {
 
     const res = await Promise.allSettled(PromiseArray)
     let isEmbedNeeded = false;
-    // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
-    const resultEmbeds = res.map((r: any, i: any) => {
+    const resultEmbeds = res.map((r: any, i: number) => {
       if (r.status === "fulfilled" && r.value) {
         isEmbedNeeded = true;
         return r.value;
       } else {
         if (r.reason) console.log(r.reason);
         const embed = embeds[i];
-        return embed.setTitle(decodeURI(embed.url));
+        const urlString = embed.url;
+        if (typeof urlString === "string") {
+          return embed.setTitle(decodeURI(urlString));
+        } else {
+          //This should not happen.
+          return embed;
+        }
       }
     });
 
@@ -84,7 +89,11 @@ function onMessage(msg: any) {
   return;
 }
 
-function registerOnMessageEmbedAdd(msg: any, fn: any) {
+interface injectedMessage extends Omit<Message, "embeds"> {
+  _embeds?: MessageEmbed[],
+  embeds?: MessageEmbed[]
+}
+function registerOnMessageEmbedAdd(msg: injectedMessage, fn: Function) {
   msg._embeds = msg.embeds;
   delete msg.embeds;
   Object.defineProperty(msg, "embeds", {
@@ -92,7 +101,8 @@ function registerOnMessageEmbedAdd(msg: any, fn: any) {
       if (
         (this._embeds.length !== newEmbeds.length) ||
         (this._embeds.length > 0 &&
-          !this._embeds.every((embed: any, i: any) => newEmbeds[i] && embed.equals(newEmbeds[i])))
+          !this._embeds.every((embed: MessageEmbed, i: number) =>
+            newEmbeds[i] && embed.equals(newEmbeds[i])))
       ) {
         fn(newEmbeds);
       }

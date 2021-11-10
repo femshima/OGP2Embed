@@ -4,16 +4,18 @@
   "description": "Extract url from Discord messages, fetches information of the site, and sends it to the channel as an embed.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "cross-env NODE_ENV=development nodemon server.js"
+    "start": "tsc server.ts",
+    "dev": "cross-env NODE_ENV=development nodemon server.ts"
   },
   "dependencies": {
+    "@types/node": "^16.11.7",
+    "@types/open-graph-scraper": "^4.8.1",
     "discord.js": "^13.3.1",
     "dotenv": "^10.0.0",
     "got": "^11.8.2",
     "libxmljs2": "^0.29.0",
     "open-graph-scraper": "^4.10.0",
-    "ts-migrate": "^0.1.26"
+    "typescript": "^4.4.4"
   },
   "engines": {
     "node": "16.x"

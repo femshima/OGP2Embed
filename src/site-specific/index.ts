@@ -1,8 +1,8 @@
 
-interface domainTreeType {
-    [s: string]: domainTreeType | Function,
+interface DomainTree {
+    [s: string]: DomainTree | Function,
 }
-let domainTree: domainTreeType = {};
+let domainTree: DomainTree = {};
 import fs from "fs";
 fs.readdirSync("src/site-specific").forEach(function (file: string) {
     let fileNameArray = file.split(".");
@@ -15,7 +15,7 @@ fs.readdirSync("src/site-specific").forEach(function (file: string) {
     if (fileNameWithoutExt === "default") return;
     const site = require("./" + fileNameWithoutExt);
     if (typeof site.hostname !== "string") return;
-    let currentTree: domainTreeType = domainTree;
+    let currentTree: DomainTree = domainTree;
     site.hostname.split(".").reverse().forEach((domain: string, i: number, arr: string[]) => {
         if (i === arr.length - 1) {
             currentTree[domain] = site.handle;
@@ -23,7 +23,7 @@ fs.readdirSync("src/site-specific").forEach(function (file: string) {
         if (typeof currentTree[domain] === "undefined") {
             currentTree[domain] = {};
         }
-        currentTree = currentTree[domain] as domainTreeType;
+        currentTree = currentTree[domain] as DomainTree;
     });
 
 });
@@ -34,7 +34,7 @@ console.log(domainTree);
 
 export default function (url_s: string) {
     let url = new URL(url_s);
-    let currentTree: domainTreeType | Function = domainTree;
+    let currentTree: DomainTree | Function = domainTree;
     url.hostname.split(".").reverse().some(domain => {
         if (typeof currentTree === "function" || typeof currentTree === "undefined") {
             return true;

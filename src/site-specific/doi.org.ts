@@ -1,9 +1,11 @@
-const got = require("got");
+import got from "got";
 const cache = require("../cache");
 
-const libxmljs = require("libxmljs2");
-exports.hostname = "doi.org";
-exports.handle = async (origurl, before, after) => {
+import { WorksMessage } from "crossRefAPI";
+
+import libxmljs from "libxmljs2";
+export const hostname = "doi.org";
+export async function handle(origurl: URL, before: Function, after: Function) {
     const crefResponse = await got(
         {
             url: "https://api.crossref.org/works" + origurl.pathname,
@@ -16,7 +18,7 @@ exports.handle = async (origurl, before, after) => {
         }
     );
     console.log(crefResponse.isFromCache);
-    const cref = crefResponse.body;
+    const cref = crefResponse.body as WorksMessage;
     if (cref.status !== "ok") return;
     let title, url, desc;
     desc = getAbstract(cref.message.abstract);
@@ -31,7 +33,7 @@ exports.handle = async (origurl, before, after) => {
 
     let fields = [
         {
-            name: cref.message.author.reduce((str, a) => {
+            name: cref.message.author.reduce((str: any, a: any) => {
                 let suffix = a.suffix ?? "";
                 let prefix = a.prefix ?? "";
                 let given = a.given ?? "";
@@ -57,13 +59,18 @@ exports.handle = async (origurl, before, after) => {
     ]
     return after({ title, url, desc, fields });
 };
-function getAbstract(desc) {
+function getAbstract(desc: any) {
     if (typeof desc !== "string") {
         return desc;
     }
     try {
         const doc = libxmljs.parseXml(`<abstract>${desc}</abstract>`);
-        return doc.root().text();
+        const root = doc.root();
+        if (root === null) {
+            return desc;
+        } else {
+            return root.text();
+        }
     } catch (e) {
         console.debug(e);
         return desc;

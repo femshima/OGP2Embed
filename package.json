@@ -2,23 +2,30 @@
   "name": "ogp2embed",
   "version": "0.0.1",
   "description": "Extract url from Discord messages, fetches information of the site, and sends it to the channel as an embed.",
-  "main": "server.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "cross-env NODE_ENV=development nodemon server.js"
+    "start": "node .",
+    "dev": "cross-env NODE_ENV=development nodemon",
+    "clean": "rimraf dist/*",
+    "tsc": "tsc",
+    "build": "npm-run-all clean tsc"
   },
   "dependencies": {
+    "@types/node": "^16.11.7",
+    "@types/open-graph-scraper": "^4.8.1",
     "discord.js": "^13.3.1",
     "dotenv": "^10.0.0",
     "got": "^11.8.2",
     "libxmljs2": "^0.29.0",
-    "open-graph-scraper": "^4.10.0"
+    "npm-run-all": "^4.1.5",
+    "open-graph-scraper": "^4.10.0",
+    "typescript": "^4.4.4"
   },
   "engines": {
     "node": "16.x"
   },
   "repository": {
-    "url": "https://github.com/femshima/OGP2Embed"
+    "url": "https://github.com/v-ut-d/OGP2Embed"
   },
   "license": "MIT",
   "keywords": [
@@ -28,6 +35,7 @@
     "ogp"
   ],
   "devDependencies": {
+    "ts-node": "^10.4.0",
     "cross-env": "^7.0.3",
     "nodemon": "^2.0.14"
   }

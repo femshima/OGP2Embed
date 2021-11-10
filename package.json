@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "ts-node src/server.ts",
-    "dev": "cross-env NODE_ENV=development nodemon"
+    "dev": "cross-env NODE_ENV=development nodemon",
+    "clean": "rimraf dist/*",
+    "tsc": "tsc",
+    "build": "npm-run-all clean tsc"
   },
   "dependencies": {
     "@types/node": "^16.11.7",
@@ -14,6 +17,7 @@
     "dotenv": "^10.0.0",
     "got": "^11.8.2",
     "libxmljs2": "^0.29.0",
+    "npm-run-all": "^4.1.5",
     "open-graph-scraper": "^4.10.0",
     "ts-node": "^10.4.0",
     "typescript": "^4.4.4"

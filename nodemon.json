@@ -3,5 +3,5 @@
         "src"
     ],
     "ext": "ts",
-    "exec": "npm run start"
+    "exec": "npx ts-node src/server.ts"
 }

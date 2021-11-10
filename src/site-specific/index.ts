@@ -5,9 +5,15 @@ interface domainTreeType {
 let domainTree: domainTreeType = {};
 import fs from "fs";
 fs.readdirSync("src/site-specific").forEach(function (file: string) {
-    if (file === "index.js") return;
-    if (file === "default.js") return;
-    const site = require("./" + file);
+    let fileNameArray = file.split(".");
+    fileNameArray.pop();
+    const fileNameWithoutExt = fileNameArray.join(".");
+    if (fileNameWithoutExt.length === 0) {
+        return;
+    }
+    if (fileNameWithoutExt === "index") return;
+    if (fileNameWithoutExt === "default") return;
+    const site = require("./" + fileNameWithoutExt);
     if (typeof site.hostname !== "string") return;
     let currentTree: domainTreeType = domainTree;
     site.hostname.split(".").reverse().forEach((domain: string, i: number, arr: string[]) => {

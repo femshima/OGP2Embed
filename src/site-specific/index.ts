@@ -3,7 +3,8 @@ interface domainTreeType {
     [s: string]: domainTreeType | Function,
 }
 let domainTree: domainTreeType = {};
-require("fs").readdirSync("site-specific").forEach(function (file: string) {
+import fs from "fs";
+fs.readdirSync("src/site-specific").forEach(function (file: string) {
     if (file === "index.js") return;
     if (file === "default.js") return;
     const site = require("./" + file);

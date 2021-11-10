@@ -1,6 +1,7 @@
 import got from "got";
 const cache = require("../cache");
 
+import { WorksMessage } from "crossRefAPI";
 
 import libxmljs from "libxmljs2";
 export const hostname = "doi.org";

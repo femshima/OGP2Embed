@@ -173,9 +173,10 @@ interface Review {
 
 
 
-interface WorksMessage {
+export interface WorksMessage {
     status: string
     "message-type": string
     "message-version": string
     message: Works
 }
+

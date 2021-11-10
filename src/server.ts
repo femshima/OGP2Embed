@@ -4,7 +4,7 @@ const client = new Client({
   partials: ["MESSAGE"]
 });
 
-import {config as dotenvconfig} from 'dotenv';
+import { config as dotenvconfig } from 'dotenv';
 dotenvconfig();
 
 import siteSpecific from "./site-specific/index";

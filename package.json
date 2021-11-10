@@ -2,7 +2,7 @@
   "name": "ogp2embed",
   "version": "0.0.1",
   "description": "Extract url from Discord messages, fetches information of the site, and sends it to the channel as an embed.",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "scripts": {
     "start": "node .",
     "dev": "cross-env NODE_ENV=development nodemon",

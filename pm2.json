@@ -2,7 +2,7 @@
     "apps": [
         {
             "name": "OGP2Embed",
-            "script": "./dist/server.js",
+            "script": "./server.js",
             "instances": 1,
             "watch": true,
             "exec_mode": "cluster",

@@ -3,8 +3,11 @@ interface DomainTree {
     [s: string]: DomainTree | Function,
 }
 let domainTree: DomainTree = {};
+
 import fs from "fs";
-fs.readdirSync("src/site-specific").forEach(function (file: string) {
+import path from "path";
+
+fs.readdirSync(path.join(__dirname)).forEach(function (file: string) {
     let fileNameArray = file.split(".");
     fileNameArray.pop();
     const fileNameWithoutExt = fileNameArray.join(".");

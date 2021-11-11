@@ -1,7 +1,7 @@
 import got from "got";
 const cache = require("../cache");
 
-import { WorksMessage } from "crossRefAPI";
+import {crossRefAPI} from "crossRefAPI";
 
 import libxmljs from "libxmljs2";
 export const hostname = "doi.org";
@@ -18,13 +18,13 @@ export async function handle(origurl: URL, before: Function, after: Function) {
         }
     );
     console.log(crefResponse.isFromCache);
-    const cref = crefResponse.body as WorksMessage;
+    const cref = crefResponse.body as crossRefAPI.WorkMessage;
     if (cref.status !== "ok") return;
     let title, url, desc;
     desc = getAbstract(cref.message.abstract);
     url = cref.message.URL;
     title = cref.message.title[0];
-
+    
     let containerTitle = cref.message["container-title"];
     let issued = cref.message.issued["date-parts"][0];
     let page = cref.message.page ?? "";

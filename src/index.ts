@@ -86,7 +86,7 @@ function onMessage(msg: Message) {
       }
     });
 
-    const phMessage = await placeHolder
+    const phMessage = await placeHolder;
     if (embeds.length === 0 || !isEmbedNeeded) {
       msg.suppressEmbeds(false);
       phMessage.delete();
@@ -103,7 +103,7 @@ function onMessage(msg: Message) {
   return;
 }
 
-interface injectedMessage extends Omit<Message, "embeds"> {
+type injectedMessage = Omit<Message, "embeds"> & {
   _embeds?: MessageEmbed[],
   embeds?: MessageEmbed[]
 }

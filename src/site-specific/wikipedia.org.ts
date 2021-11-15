@@ -1,11 +1,26 @@
 import libxmljs, { Element } from "libxmljs2";
-export const hostname = "wikipedia.org";
-export async function handle(origurl: any, before: any, after: any) {
-    let { title, url, desc, image, _ogresponse } = await before(origurl);
-    const doc = libxmljs.parseHtml(_ogresponse.rawBody);
-    const descNode = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]');
-    if (descNode !== null) {
-        desc = (descNode as Element).text();
+
+import { Response } from "got/dist/source";
+
+import Base from "./default";
+
+export default class wikipedia_org extends Base {
+    static readonly hostname = "wikipedia.org";
+    constructor(url: URL) {
+        super(url);
     }
-    return after({ title, url, desc, image });
-};
+    async fetch() {
+        await super.fetch();
+        if (!this.ogResult) {
+            return this.embed;
+        }
+        const ogResponse = ((this.ogResult.response as unknown) as Response).rawBody.toString();
+        const doc = libxmljs.parseHtml(ogResponse);
+        const descNode = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]');
+        const descText = descNode !== null && (descNode as Element).text();
+        if (descText) {
+            this.embed.setDescription(descText);
+        }
+        return this.embed;
+    }
+}

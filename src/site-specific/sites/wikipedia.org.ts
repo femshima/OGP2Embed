@@ -2,7 +2,7 @@ import libxmljs, { Element } from "libxmljs2";
 
 import { Response } from "got/dist/source";
 
-import Base from "./default";
+import Base from "../default";
 
 export default class wikipedia_org extends Base {
     static readonly hostname = "wikipedia.org";

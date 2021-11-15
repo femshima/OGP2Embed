@@ -9,20 +9,7 @@ let domainTree: DomainTree = {};
 import fs from "fs";
 import path from "path";
 
-
-fs.readdirSync(path.join(__dirname)).forEach(function (file: string) {
-    let fileNameArray = file.split(".");
-    fileNameArray.pop();
-    const fileNameWithoutExt = fileNameArray.join(".");
-    if (fileNameWithoutExt.length === 0) {
-        return;
-    }
-    if (fileNameWithoutExt === "index") return;
-    if (fileNameWithoutExt === "default") return;
-    const site = require("./" + fileNameWithoutExt).default;
-    const ib = isBaseConstructable(site);
-    if (!isBaseConstructable(site)) return;
-    console.log(site);
+function addSite(site: BaseConstructable) {
     if (typeof site.hostname !== "string") return;
     let currentTree: DomainTree = domainTree;
     site.hostname.split(".").reverse().forEach((domain: string, i: number, arr: string[]) => {
@@ -34,7 +21,29 @@ fs.readdirSync(path.join(__dirname)).forEach(function (file: string) {
         }
         currentTree = currentTree[domain] as DomainTree;
     });
+}
 
+import blacklist from "./blacklist";
+blacklist.forEach((black: string) => {
+    const falsesite = getFalse(black);
+    if (isBaseConstructable(falsesite)) {
+        addSite(falsesite);
+    }
+});
+
+const searchPath = path.join(__dirname, "sites");
+fs.readdirSync(searchPath).forEach(function (file: string) {
+    let fileNameArray = file.split(".");
+    fileNameArray.pop();
+    const fileNameWithoutExt = fileNameArray.join(".");
+    if (fileNameWithoutExt.length === 0) {
+        return;
+    }
+    if (fileNameWithoutExt === "index") return;
+    if (fileNameWithoutExt === "default") return;
+    const site = require(path.join(searchPath, fileNameWithoutExt)).default;
+    if (!isBaseConstructable(site)) return;
+    addSite(site);
 });
 
 console.log(domainTree);

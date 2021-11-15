@@ -1,0 +1,18 @@
+export default [
+    "battle.net",
+    "facebook.com",
+    "github.com",
+    "redd.it",
+    "reddit.com",
+    "spotify.com",
+    "steampowered.com",
+    "steamcommunity.com",
+    "steamgames.com",
+    "valvesoftware.com",
+    "twitch.tv",
+    "twitter.com",
+    "xbox.com",
+    "youtube.com",
+    "youtu.be",
+    "blizzard.com",
+]

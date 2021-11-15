@@ -1,11 +1,11 @@
 import got from "got";
-const cache = require("../cache");
+const cache = require("../../cache");
 
 import { crossRefAPI } from "crossRefAPI";
 
 import libxmljs from "libxmljs2";
 
-import BaseImpl from "./default";
+import BaseImpl from "../default";
 import { MessageEmbed } from "discord.js";
 
 

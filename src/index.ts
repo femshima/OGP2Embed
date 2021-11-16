@@ -45,7 +45,7 @@ function onMessage(msg: Message) {
 
 
     const PromiseArray = embeds.map((embed: MessageEmbed) => {
-      if (embed.video || embed.author || !embed.url) {
+      if (!embed.url) {
         return false;
       } else {
         return siteSpecific(embed.url);

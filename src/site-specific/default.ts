@@ -4,7 +4,7 @@ import { MessageEmbed } from "discord.js";
 const baseImplSymbol = Symbol();
 
 interface Base {
-    fetch(): Promise<MessageEmbed | undefined> | MessageEmbed | Boolean;
+    fetch(): Promise<MessageEmbed | Boolean> | MessageEmbed | Boolean;
 }
 
 export interface BaseConstructable extends Base {
@@ -29,6 +29,11 @@ export default class BaseImpl implements Base {
     constructor(url: URL) {
         this.embed = new MessageEmbed();
         this.url = url;
+    }
+
+    private isEmbedValid(embed: MessageEmbed) {
+        return (embed.title !== null && embed.title !== "") ||
+            (embed.description !== null && embed.description !== "");
     }
 
     private removeLeadingAt(input: string | undefined) {
@@ -91,10 +96,11 @@ export default class BaseImpl implements Base {
             timestamp && this.embed.setTimestamp(new Date(timestamp));
         } catch { }
 
-        return this.embed;
+        return this.isEmbedValid(this.embed) ?
+            this.embed : false;
     }
 
-    fetch(): Promise<MessageEmbed | undefined> | MessageEmbed | Boolean {
+    fetch(): Promise<MessageEmbed | Boolean> | MessageEmbed | Boolean {
         return this.fetchOGP();
     }
 

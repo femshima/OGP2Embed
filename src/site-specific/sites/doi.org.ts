@@ -30,7 +30,10 @@ export default class doi_org extends BaseImpl {
         console.log(crefResponse.isFromCache);
 
         const cref = crefResponse.body as crossRefAPI.WorkMessage;
-        if (cref.status !== "ok") return;
+        if (cref.status !== "ok") {
+            console.log(crefResponse);
+            return Promise.reject(new Error("Crossref API Error"));
+        }
         let title, url, desc;
         desc = this.getAbstract(cref.message.abstract);
         url = cref.message.URL;

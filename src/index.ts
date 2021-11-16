@@ -1,7 +1,7 @@
-import { Client, Intents, MessageEmbed, Message } from "discord.js";
+import { Client, Intents, MessageEmbed, Message, ReactionEmoji, MessageReaction, PartialMessage } from "discord.js";
 const client = new Client({
-  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
-  partials: ["MESSAGE"]
+  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
+  partials: ["MESSAGE", "REACTION"]
 });
 
 import { config as dotenvconfig } from 'dotenv';
@@ -128,12 +128,68 @@ function registerOnMessageEmbedAdd(msg: injectedMessage, fn: Function) {
   })
 }
 
-function AddEmbeds(EmbedDict: any, embeds: any) {
-  if (!Array.isArray(embeds)) return;
-  embeds.forEach(embed => {
-    EmbedDict[embed.url] = embed;
-  });
+async function addWarning(message: Message | PartialMessage) {
+  const embeds = message.embeds;
+  if (embeds.length > 0) {
+    const fieldLength = embeds[embeds.length - 1].fields.length;
+    if (fieldLength === 0 ||
+      embeds[embeds.length - 1].fields[fieldLength - 1].name !== "Warning") {
+      embeds[embeds.length - 1].addField("Warning", "Do you really want to remove this embed?(y|N)");
+      await message.edit({ embeds });
+    }
+  }
 }
+async function cleanWarning(message: Message | PartialMessage) {
+  const embeds = message.embeds;
+  if (embeds.length > 0) {
+    const fieldLength = embeds[embeds.length - 1].fields.length;
+    if (fieldLength > 0 &&
+      embeds[embeds.length - 1].fields[fieldLength - 1].name === "Warning") {
+      embeds[embeds.length - 1].spliceFields(fieldLength - 1, 1);
+      await message.edit({ embeds });
+    }
+  }
+}
+
+client.on("messageReactionAdd", async (reaction, user) => {
+  await reaction.message.fetch();
+  if (!client.user || reaction.message.author?.id !== client.user.id) {
+    return;
+  }
+
+  const bomb = "💣";/* Bomb */
+  const y = "🇾";
+  const n = "🇳";
+  const bombR = reaction.message.reactions.cache.get(bomb);
+  bombR && await bombR.users.fetch();
+
+  if (reaction.emoji.name === bomb) {
+    await Promise.all([
+      addWarning(reaction.message),
+      reaction.message.react(y),
+      reaction.message.react(n),
+      reaction.message.react(bomb)
+    ]);
+    const beforeBombRs = bombR?.count;
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    await reaction.message.fetch();
+    await bombR?.fetch();
+    if (!reaction.message.deleted && beforeBombRs === bombR?.count) {
+      reaction.message.reactions.removeAll();
+      cleanWarning(reaction.message);
+    }
+  }
+  else if (bombR?.me && bombR.users.cache.get(user.id) &&
+    (reaction.emoji.name === y || reaction.emoji.name === n)
+  ) {
+    reaction.message.reactions.removeAll();
+    if (reaction.emoji.name === y) {
+      reaction.message.delete();
+    } else {
+      cleanWarning(reaction.message);
+    }
+  }
+});
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {
   console.log("DISCORD_BOT_TOKENが設定されていません。");

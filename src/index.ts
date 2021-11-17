@@ -1,4 +1,4 @@
-import { Client, Intents, MessageEmbed, Message, ReactionEmoji, MessageReaction, PartialMessage } from "discord.js";
+import { Client, Intents, MessageEmbed, Message, PartialMessage } from "discord.js";
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
   partials: ["MESSAGE", "REACTION"]
@@ -153,42 +153,44 @@ async function cleanWarning(message: Message | PartialMessage) {
 
 client.on("messageReactionAdd", async (reaction, user) => {
   await reaction.message.fetch();
-  if (!client.user || reaction.message.author?.id !== client.user.id) {
+  if (
+    !client.user || reaction.message.author?.id !== client.user.id ||
+    user.id === client.user.id ||
+    reaction.message.deleted) {
     return;
   }
 
   const bomb = "💣";/* Bomb */
   const y = "🇾";
   const n = "🇳";
-  const bombR = reaction.message.reactions.cache.get(bomb);
-  bombR && await bombR.users.fetch();
 
-  if (reaction.emoji.name === bomb) {
-    await Promise.all([
-      addWarning(reaction.message),
-      reaction.message.react(y),
-      reaction.message.react(n),
-      reaction.message.react(bomb)
-    ]);
-    const beforeBombRs = bombR?.count;
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    await reaction.message.fetch();
-    await bombR?.fetch();
-    if (!reaction.message.deleted && beforeBombRs === bombR?.count) {
-      reaction.message.reactions.removeAll();
-      cleanWarning(reaction.message);
-    }
-  }
-  else if (bombR?.me && bombR.users.cache.get(user.id) &&
-    (reaction.emoji.name === y || reaction.emoji.name === n)
-  ) {
+  if (reaction.emoji.name !== bomb) return;
+
+  const rP = reaction.message.awaitReactions({
+    filter: (reaction, _user) => {
+      return (reaction.emoji.name === y || reaction.emoji.name === n)
+        && _user.id === user.id;
+    }, max: 1, time: 5000
+  });
+  
+  await Promise.all([
+    addWarning(reaction.message),
+    reaction.message.react(y),
+    reaction.message.react(n),
+    reaction.message.react(bomb)
+  ]);
+  const r = await rP;
+  const yR = r.get(y);
+  const nR = r.get(n);
+  await reaction.message.fetch();
+  if (reaction.message.deleted) return;
+  if (yR && yR.count > 0 && !(nR && nR.count > 0)) {
+    reaction.message.delete();
+  } else {
+    cleanWarning(reaction.message);
     reaction.message.reactions.removeAll();
-    if (reaction.emoji.name === y) {
-      reaction.message.delete();
-    } else {
-      cleanWarning(reaction.message);
-    }
   }
+
 });
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {

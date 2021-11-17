@@ -130,24 +130,19 @@ function registerOnMessageEmbedAdd(msg: injectedMessage, fn: Function) {
 
 async function addWarning(message: Message | PartialMessage) {
   const embeds = message.embeds;
-  if (embeds.length > 0) {
-    const fieldLength = embeds[embeds.length - 1].fields.length;
-    if (fieldLength === 0 ||
-      embeds[embeds.length - 1].fields[fieldLength - 1].name !== "Warning") {
-      embeds[embeds.length - 1].addField("Warning", "Do you really want to remove this embed?(y|N)");
-      await message.edit({ embeds });
-    }
+  if (embeds.length === 0 ||
+    embeds[embeds.length - 1].description !== "Do you really want to remove this embed?(y|N)") {
+    embeds.push(new MessageEmbed().setDescription("Do you really want to remove this embed?(y|N)")
+      .setColor("RED"));
+    await message.edit({ embeds });
   }
 }
 async function cleanWarning(message: Message | PartialMessage) {
   const embeds = message.embeds;
-  if (embeds.length > 0) {
-    const fieldLength = embeds[embeds.length - 1].fields.length;
-    if (fieldLength > 0 &&
-      embeds[embeds.length - 1].fields[fieldLength - 1].name === "Warning") {
-      embeds[embeds.length - 1].spliceFields(fieldLength - 1, 1);
-      await message.edit({ embeds });
-    }
+  if (embeds.length > 0 &&
+    embeds[embeds.length - 1].description === "Do you really want to remove this embed?(y|N)") {
+    embeds.pop();
+    await message.edit({ embeds });
   }
 }
 
@@ -172,7 +167,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
         && _user.id === user.id;
     }, max: 1, time: 5000
   });
-  
+
   await Promise.all([
     addWarning(reaction.message),
     reaction.message.react(y),

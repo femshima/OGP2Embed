@@ -7,6 +7,11 @@ const client = new Client({
 import { config as dotenvconfig } from 'dotenv';
 dotenvconfig();
 
+import logger from "./log";
+
+logger.error("Started");
+logger.log("access", "Test");
+
 import siteSpecific from "./site-specific/index";
 
 client.on("ready", () => {

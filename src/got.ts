@@ -73,12 +73,33 @@ const customGot = got.extend({
   headers: {
     'user-agent': process.env.UserAgent
   },
-  handlers: [
-    (options, next) => {
-      logger.log("access", `${options.method} ${options.url}`);
-      return next(options);
-    }
-  ],
+  hooks: {
+    afterResponse: [
+      (response, retryWithMergedOptions) => {
+        logger.log("access", `${response.request.options.method} ${response.statusCode} ${response.isFromCache ? "(From Cache) " : ""}${response.requestUrl}`);
+        return response;
+      }
+    ],
+    beforeError: [
+      error => {
+        let logmessage = `Failed: ${error.message}`;
+        if (error.request || error.response) {
+          logmessage += "(";
+        }
+        if (error.response) {
+          logmessage += `${error.response.method} ${error.response.statusCode} ${error.response.isFromCache ? "(From Cache)" : ""}`
+        }
+        if (error.request) {
+          logmessage += `${error.request.requestUrl}`;
+        }
+        if (error.request || error.response) {
+          logmessage += ")";
+        }
+        logger.log("access", logmessage);
+        return error;
+      }
+    ]
+  },
   mutableDefaults: true
 });
 

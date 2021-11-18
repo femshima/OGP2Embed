@@ -5,22 +5,20 @@ const client = new Client({
 });
 
 import { config as dotenvconfig } from 'dotenv';
+import { CancelError } from "got/dist/source";
 dotenvconfig();
 
 import logger from "./log";
 
-logger.error("Started");
-logger.log("access", "Test");
+logger.info("Starting...");
 
 import siteSpecific from "./site-specific/index";
 
 client.on("ready", () => {
-  console.log("Bot準備完了～");
+  logger.info("Started!");
 });
 
 client.on("messageCreate", onMessage);
-
-const UrlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?!&//=]*)/g;
 
 function onMessage(msg: Message) {
   if (msg.author.bot) return;
@@ -29,7 +27,7 @@ function onMessage(msg: Message) {
     if (processedFlag) return;
     processedFlag = true;
 
-    //console.log("onEmbedAdded:", embeds);
+    //logger.debug("onEmbedAdded:", embeds);
 
 
     const placeHolderEmbeds = embeds.map(embed => {
@@ -79,7 +77,11 @@ function onMessage(msg: Message) {
         isEmbedNeeded = true;
         return r.value;
       } else {
-        if (r.reason) console.log(r.reason);
+        if (r.reason) {
+          if (!(r.reason instanceof CancelError)) {
+            logger.warning(r.reason, { url: embeds[i].url });
+          }
+        }
         const embed = embeds[i];
         const urlString = embed.url;
         if (typeof urlString === "string") {
@@ -152,49 +154,52 @@ async function cleanWarning(message: Message | PartialMessage) {
 }
 
 client.on("messageReactionAdd", async (reaction, user) => {
-  await reaction.message.fetch();
-  if (
-    !client.user || reaction.message.author?.id !== client.user.id ||
-    user.id === client.user.id ||
-    reaction.message.deleted) {
-    return;
+  try {
+    await reaction.message.fetch();
+    if (
+      !client.user || reaction.message.author?.id !== client.user.id ||
+      user.id === client.user.id ||
+      reaction.message.deleted) {
+      return;
+    }
+
+    const bomb = "💣";/* Bomb */
+    const y = "🇾";
+    const n = "🇳";
+
+    if (reaction.emoji.name !== bomb) return;
+
+    const rP = reaction.message.awaitReactions({
+      filter: (reaction, _user) => {
+        return (reaction.emoji.name === y || reaction.emoji.name === n)
+          && _user.id === user.id;
+      }, max: 1, time: 5000
+    });
+
+    await Promise.all([
+      addWarning(reaction.message),
+      reaction.message.react(y),
+      reaction.message.react(n),
+      reaction.message.react(bomb)
+    ]);
+    const r = await rP;
+    const yR = r.get(y);
+    const nR = r.get(n);
+    await reaction.message.fetch();
+    if (reaction.message.deleted) return;
+    if (yR && yR.count > 0 && !(nR && nR.count > 0)) {
+      reaction.message.delete();
+    } else {
+      cleanWarning(reaction.message);
+      reaction.message.reactions.removeAll();
+    }
+  } catch (e) {
+    logger.error(e);
   }
-
-  const bomb = "💣";/* Bomb */
-  const y = "🇾";
-  const n = "🇳";
-
-  if (reaction.emoji.name !== bomb) return;
-
-  const rP = reaction.message.awaitReactions({
-    filter: (reaction, _user) => {
-      return (reaction.emoji.name === y || reaction.emoji.name === n)
-        && _user.id === user.id;
-    }, max: 1, time: 5000
-  });
-
-  await Promise.all([
-    addWarning(reaction.message),
-    reaction.message.react(y),
-    reaction.message.react(n),
-    reaction.message.react(bomb)
-  ]);
-  const r = await rP;
-  const yR = r.get(y);
-  const nR = r.get(n);
-  await reaction.message.fetch();
-  if (reaction.message.deleted) return;
-  if (yR && yR.count > 0 && !(nR && nR.count > 0)) {
-    reaction.message.delete();
-  } else {
-    cleanWarning(reaction.message);
-    reaction.message.reactions.removeAll();
-  }
-
 });
 
 if (process.env.DISCORD_BOT_TOKEN == undefined) {
-  console.log("DISCORD_BOT_TOKENが設定されていません。");
+  logger.alert("DISCORD_BOT_TOKENが設定されていません。");
   process.exit(0);
 }
 

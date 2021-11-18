@@ -1,12 +1,10 @@
-import got from "got";
-const cache = require("../../cache");
+import got from "../../got";
 
 import { crossRefAPI } from "crossRefAPI";
 
 import libxmljs from "libxmljs2";
 
 import BaseImpl from "../default";
-import { MessageEmbed } from "discord.js";
 
 
 export default class doi_org extends BaseImpl {
@@ -22,7 +20,6 @@ export default class doi_org extends BaseImpl {
                     'user-agent': process.env.UserAgent,
                     "cache-control": 'no-cache',
                 },
-                cache: cache,
                 responseType: "json"
             }
         );

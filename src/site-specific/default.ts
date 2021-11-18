@@ -1,6 +1,9 @@
 import ogs, { OpenGraphImage, SuccessResult } from "open-graph-scraper";
 import { MessageEmbed } from "discord.js";
 
+import got from "../got";
+import { Response } from "got/dist/source";
+
 const baseImplSymbol = Symbol();
 
 interface Base {
@@ -18,12 +21,15 @@ export function isBaseConstructable(arg: any): arg is BaseConstructable {
         arg.typeId === BaseImpl.typeId;
 }
 
+type OGPResult = Omit<SuccessResult, "response"> & {
+    response: Response
+};
 
 export default class BaseImpl implements Base {
     static readonly typeId = baseImplSymbol;
     static readonly hostname: string | null = null;
     protected embed: MessageEmbed;
-    protected ogResult: SuccessResult | null = null;
+    protected ogResult: OGPResult | null = null;
     protected url: URL;
 
     constructor(url: URL) {
@@ -41,12 +47,13 @@ export default class BaseImpl implements Base {
     }
 
     private async fetchOGP() {
-        const ogpResult = await ogs({ url: this.url.href });
+        const response = await got(this.url.href);
+        const ogpResult = await ogs({ url: "", html: response.rawBody.toString() });
         if (ogpResult.error) {
             return Promise.reject(new Error("OGS Failed"));
         }
-        this.ogResult = ogpResult;
-        const { error, result, response } = ogpResult;
+        this.ogResult = { ...ogpResult, response };
+        const { result } = ogpResult;
 
         const sendURL = new URL(result.ogUrl ?? this.url);
 

@@ -14,7 +14,7 @@ export default class wikipedia_org extends Base {
         if (!this.ogResult) {
             return this.embed;
         }
-        const ogResponse = ((this.ogResult.response as unknown) as Response).rawBody.toString();
+        const ogResponse = this.ogResult.response.rawBody.toString();
         const doc = libxmljs.parseHtml(ogResponse);
         const descNode = doc.get('//*[@id="mw-content-text"]/div[1]/p[1]');
         const descText = descNode !== null && (descNode as Element).text();

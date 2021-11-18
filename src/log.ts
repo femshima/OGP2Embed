@@ -94,7 +94,7 @@ const logger = winston.createLogger({
             level: process.env.NODE_ENV === "production" ? "info" : "debug",
             handleExceptions: true,
         }),
-        ...process.env.NODE_ENV === "production"||true ? ([
+        ...process.env.NODE_ENV === "production" ? ([
             AccessLogTransport,
             ErrorLogTransport,
             DefaultLogTransport]

@@ -1,4 +1,4 @@
-import { Client, Intents, MessageEmbed, Message, PartialMessage } from "discord.js";
+import { Client, Intents, MessageEmbed, Message, PartialMessage, TextChannel, Permissions } from "discord.js";
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
   partials: ["MESSAGE", "REACTION"]
@@ -14,6 +14,9 @@ logger.info("Starting...");
 
 import siteSpecific from "./site-specific/index";
 
+import Sequelize, { SentMessages } from "./models/";
+
+
 client.on("ready", () => {
   logger.info("Started!");
 });
@@ -24,6 +27,7 @@ function onMessage(msg: Message) {
   if (msg.author.bot) return;
   let processedFlag = false;
   const onMessageEmbedAdd = async (embeds: MessageEmbed[]) => {
+
     if (processedFlag) return;
     processedFlag = true;
 
@@ -94,6 +98,17 @@ function onMessage(msg: Message) {
     });
 
     const phMessage = await placeHolder;
+
+    SentMessages.create({
+      guildId: phMessage.guildId,
+      channelId: phMessage.channelId,
+      messageId: phMessage.id,
+      originMessageId: msg.id,
+      originUserId: msg.author.id,
+      originCreatedAt: msg.createdAt,
+      originUpdatedAt: msg.editedAt
+    });
+
     if (embeds.length === 0 || !isEmbedNeeded) {
       msg.suppressEmbeds(false);
       phMessage.delete();
@@ -156,6 +171,12 @@ async function cleanWarning(message: Message | PartialMessage) {
 client.on("messageReactionAdd", async (reaction, user) => {
   try {
     await reaction.message.fetch();
+
+    const bomb = "💣";/* Bomb */
+    const y = "🇾";
+    const n = "🇳";
+
+    if (reaction.emoji.name !== bomb) return;
     if (
       !client.user || reaction.message.author?.id !== client.user.id ||
       user.id === client.user.id ||
@@ -163,11 +184,24 @@ client.on("messageReactionAdd", async (reaction, user) => {
       return;
     }
 
-    const bomb = "💣";/* Bomb */
-    const y = "🇾";
-    const n = "🇳";
+    //TODO: Cleaner type
+    const channel = await reaction.message.channel.fetch() as TextChannel;
+    const user_f = await user.fetch();
+    const msg = await SentMessages.findOne({
+      where: {
+        guildId: reaction.message.guildId,
+        channelId: reaction.message.channelId,
+        messageId: reaction.message.id,
+      }
+    });
 
-    if (reaction.emoji.name !== bomb) return;
+    const deletable =
+      (msg !== null && msg.originUserId === user.id) ||
+      channel.permissionsFor(user_f)?.has(Permissions.FLAGS.MANAGE_MESSAGES, false);
+    if (!deletable) {
+      return;
+    }
+
 
     const rP = reaction.message.awaitReactions({
       filter: (reaction, _user) => {

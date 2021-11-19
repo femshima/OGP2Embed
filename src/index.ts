@@ -14,141 +14,190 @@ logger.info("Starting...");
 
 import siteSpecific from "./site-specific/index";
 
-import Sequelize, { SentMessages } from "./models/";
+import { SentMessages } from "./models/";
 
+import EmbedWatcher from "./EmbedWatcher";
 
 client.on("ready", () => {
   logger.info("Started!");
 });
 
+async function deleteMessage(msg: Message | PartialMessage) {
+  if (client.user && msg.author?.id === client.user.id) {
+    await SentMessages.destroy({
+      where: {
+        guildId: msg.guildId,
+        channelId: msg.channelId,
+        messageId: msg.id,
+      }
+    });
+  } else {
+    const target = await SentMessages.findOne({
+      where: {
+        guildId: msg.guildId,
+        channelId: msg.channelId,
+        originMessageId: msg.id,
+      }
+    });
+    if (target) {
+      const targetMsg = await msg.channel.messages.fetch(target.messageId).catch(() => undefined);
+      targetMsg && targetMsg.deletable && await targetMsg.delete();
+    }
+    await SentMessages.destroy({
+      where: {
+        guildId: msg.guildId,
+        channelId: msg.channelId,
+        originMessageId: msg.id,
+      }
+    });
+  }
+  msg.deletable && msg.delete();
+  logger.debug(`deleted:${msg.id}`);
+}
+
+
 client.on("messageCreate", onMessage);
+client.on("messageUpdate", async (before, after) => {
+  if (!client.user || after.author?.id === client.user.id) {
+    return;
+  }
+  if (before.content === after.content) {
+    return;
+  }
+  const msg = await after.fetch();
+  const sm = await SentMessages.findOne({
+    where: {
+      guildId: msg.guildId,
+      channelId: msg.channelId,
+      originMessageId: msg.id,
+    }
+  });
+  let embedmsg: Message | null = null;
+  if (sm) {
+    logger.debug(`messageUpdate:${sm.messageId}->${msg.id}`);
+    try {
+      const textChannel = await msg.channel.fetch() as TextChannel;
+      embedmsg = await textChannel.messages.fetch(sm.messageId);
+    } catch { }
+  }
+  msg.suppressEmbeds(false);
+  onMessage(msg, embedmsg);
+});
+client.on("messageDelete", msg => {
+  if (client.user && msg.author?.id === client.user.id) return;
+  deleteMessage(msg);
+});
 
-function onMessage(msg: Message) {
+async function onMessage(msg: Message, placeHolder?: Message | null) {
+  if (placeHolder === null) {
+    //messageUpdateかつボットが送信したEmbedが存在しない
+    return;
+  }
+
+
   if (msg.author.bot) return;
-  let processedFlag = false;
-  const onMessageEmbedAdd = async (embeds: MessageEmbed[]) => {
 
-    if (processedFlag) return;
-    processedFlag = true;
+  if (msg.embeds.length === 0) {
+    await EmbedWatcher.attach(msg).waitForEmbed();
+  }
 
-    //logger.debug("onEmbedAdded:", embeds);
-
-
-    const placeHolderEmbeds = embeds.map(embed => {
-      if (
-        embed.url &&
-        (!embed.title ||
-          (embed.title && embed.url.includes(embed.title.replace("...", ""))))
-      ) {
-        const url = new URL(embed.url);
-        let path = url.pathname.split("/").pop() ?? url.pathname ?? url.href;
-        embed.setTitle(decodeURIComponent(path));
-      }
-      if (!embed.description) {
-        embed.setDescription("Fetching...");
-      }
-      return embed;
-    });
+  const embeds = msg.embeds;
 
 
-    const PromiseArray = embeds.map((embed: MessageEmbed) => {
-      if (!embed.url) {
-        return false;
-      } else {
-        return siteSpecific(embed.url);
-      }
-    });
+  const placeHolderEmbeds = embeds.map(embed => {
+    if (
+      embed.url &&
+      (!embed.title ||
+        (embed.title && embed.url.includes(embed.title.replace("...", ""))))
+    ) {
+      const url = new URL(embed.url);
+      let path = url.pathname.split("/").pop() ?? url.pathname ?? url.href;
+      embed.setTitle(decodeURIComponent(path));
+    }
+    if (!embed.description) {
+      embed.setDescription("Fetching...");
+    }
+    return embed;
+  });
 
-    /*
-      ・すべてのEmbedがデフォルトを流用する状態になっている場合
-      はデフォルトのEmbedを使い、ボットによる追加はしない
-    */
-    let placeHolder;
-    if (PromiseArray.every((p: any) => p === false)) {
-      return;
+
+  const PromiseArray = embeds.map((embed: MessageEmbed) => {
+    if (!embed.url) {
+      return false;
+    } else {
+      return siteSpecific(embed.url);
+    }
+  });
+
+  /*
+    すべてのEmbedがデフォルトを流用する状態になっている場合
+    はデフォルトのEmbedを使い、ボットによる追加はしない
+  */
+  if (PromiseArray.every((p: any) => p === false)) {
+    if (typeof placeHolder !== "undefined") {
+      const phMessage = await placeHolder;
+      phMessage.deletable && deleteMessage(phMessage);
+    }
+    return;
+  } else {
+    if (typeof placeHolder === "undefined") {
+      msg.suppressEmbeds(true);
+      placeHolder = await msg.channel.send({
+        embeds: placeHolderEmbeds
+      });
     } else {
       msg.suppressEmbeds(true);
-      placeHolder = msg.channel.send({
+      placeHolder.edit({
         embeds: placeHolderEmbeds
       });
     }
+  }
 
 
-    const res = await Promise.allSettled(PromiseArray)
-    let isEmbedNeeded = false;
-    const resultEmbeds = res.map((r: any, i: number) => {
-      if (r.status === "fulfilled" && r.value) {
-        isEmbedNeeded = true;
-        return r.value;
-      } else {
-        if (r.reason) {
-          if (!(r.reason instanceof CancelError)) {
-            logger.warning(r.reason, { url: embeds[i].url });
-          }
-        }
-        const embed = embeds[i];
-        const urlString = embed.url;
-        if (typeof urlString === "string") {
-          return embed.setTitle(decodeURI(urlString));
-        } else {
-          //This should not happen.
-          return embed;
+  const res = await Promise.allSettled(PromiseArray)
+  let isEmbedNeeded = false;
+  const resultEmbeds = res.map((r: any, i: number) => {
+    if (r.status === "fulfilled" && r.value) {
+      isEmbedNeeded = true;
+      return r.value;
+    } else {
+      if (r.reason) {
+        if (!(r.reason instanceof CancelError)) {
+          logger.warning(r.reason, { url: embeds[i].url });
         }
       }
-    });
+      const embed = embeds[i];
+      const urlString = embed.url;
+      if (typeof urlString === "string") {
+        return embed.setTitle(decodeURI(urlString));
+      } else {
+        //This should not happen.
+        return embed;
+      }
+    }
+  });
 
-    const phMessage = await placeHolder;
 
-    SentMessages.create({
-      guildId: phMessage.guildId,
-      channelId: phMessage.channelId,
-      messageId: phMessage.id,
+
+  if (embeds.length === 0 || !isEmbedNeeded) {
+    msg.suppressEmbeds(false);
+    deleteMessage(placeHolder);
+  } else {
+    msg.suppressEmbeds(true);
+    placeHolder.edit({ embeds: resultEmbeds });
+    SentMessages.upsert({
+      guildId: placeHolder.guildId,
+      channelId: placeHolder.channelId,
+      messageId: placeHolder.id,
       originMessageId: msg.id,
       originUserId: msg.author.id,
       originCreatedAt: msg.createdAt,
       originUpdatedAt: msg.editedAt
     });
+  }
 
-    if (embeds.length === 0 || !isEmbedNeeded) {
-      msg.suppressEmbeds(false);
-      phMessage.delete();
-    } else {
-      msg.suppressEmbeds(true);
-      phMessage.edit({ embeds: resultEmbeds });
-    }
-  }
-  if (msg.embeds.length > 0) {
-    onMessageEmbedAdd(msg.embeds);
-  } else {
-    registerOnMessageEmbedAdd(msg, onMessageEmbedAdd);
-  }
-  return;
 }
 
-type injectedMessage = Omit<Message, "embeds"> & {
-  _embeds?: MessageEmbed[],
-  embeds?: MessageEmbed[]
-}
-function registerOnMessageEmbedAdd(msg: injectedMessage, fn: Function) {
-  msg._embeds = msg.embeds;
-  delete msg.embeds;
-  Object.defineProperty(msg, "embeds", {
-    set: function (newEmbeds) {
-      if (
-        (this._embeds.length !== newEmbeds.length) ||
-        (this._embeds.length > 0 &&
-          !this._embeds.every((embed: MessageEmbed, i: number) =>
-            newEmbeds[i] && embed.equals(newEmbeds[i])))
-      ) {
-        fn(newEmbeds);
-      }
-      this._embeds = newEmbeds
-    },
-    get: function () {
-      return this._embeds;
-    }
-  })
-}
 
 async function addWarning(message: Message | PartialMessage) {
   const embeds = message.embeds;
@@ -222,7 +271,11 @@ client.on("messageReactionAdd", async (reaction, user) => {
     await reaction.message.fetch();
     if (reaction.message.deleted) return;
     if (yR && yR.count > 0 && !(nR && nR.count > 0)) {
-      reaction.message.delete();
+      if (msg) {
+        const origMessage = await channel.messages.fetch(msg.originMessageId);
+        origMessage.suppressEmbeds(false);
+      }
+      deleteMessage(reaction.message);
     } else {
       cleanWarning(reaction.message);
       reaction.message.reactions.removeAll();

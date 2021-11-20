@@ -91,7 +91,7 @@ const logger = winston.createLogger({
                 winston.format.colorize(),
                 print,
             ),
-            level: process.env.NODE_ENV === "production" ? "info" : "debug",
+            level: process.env.NODE_ENV === "production" ? "info" : "access",
             handleExceptions: true,
         }),
         ...process.env.NODE_ENV === "production" ? ([

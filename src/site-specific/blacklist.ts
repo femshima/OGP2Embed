@@ -15,7 +15,7 @@ export default [
     "youtube.com",
     "youtu.be",
     "blizzard.com",
-    "amazon.co.jp",
+    //"amazon.co.jp",
     "amazon.com",
     "amazon.co.uk",
     "amazon.de",

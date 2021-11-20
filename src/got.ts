@@ -1,4 +1,4 @@
-import got, { CancelableRequest, GotStream, Progress, RequestEvents, Response } from "got";
+import got, { CancelableRequest, Progress } from "got";
 
 import logger from "./log";
 
@@ -12,10 +12,17 @@ const defaultContext = {
 }
 
 
-//https://github.com/sindresorhus/got/blob/5cbcf526b6e7be5e40f1ad137172d7b2b68988da/documentation/examples/advanced-creation.js
-const limitDownloadUpload = got.extend({
+let cache = new Map();
+
+const customGot = got.extend({
+  //cache: cache,
+  headers: {
+    'user-agent': process.env.UserAgent
+  },
   handlers: [
     (options, next) => {
+      //https://github.com/sindresorhus/got/blob/5cbcf526b6e7be5e40f1ad137172d7b2b68988da/documentation/examples/advanced-creation.js
+
       let downloadLimit = options.context.downloadLimit as number ?? defaultContext.downloadLimit;
       let uploadLimit = options.context.uploadLimit as number ?? defaultContext.uploadLimit;
 
@@ -26,7 +33,7 @@ const limitDownloadUpload = got.extend({
       const destroy = (message: string) => {
         if (isCancelableRequest(promiseOrStream)) {
           logger.warning(`${message} url->${options.url}`);
-          promiseOrStream.cancel(message);
+          promiseOrStream.cancel();
         } else if (options.isStream) {
           promiseOrStream.destroy(new Error(message));
         }
@@ -63,19 +70,11 @@ const limitDownloadUpload = got.extend({
 
       return promiseOrStream;
     }
-  ]
-});
-
-const cache = new Map();
-
-const customGot = got.extend({
-  cache,
-  headers: {
-    'user-agent': process.env.UserAgent
-  },
+  ],
   hooks: {
     afterResponse: [
       (response, retryWithMergedOptions) => {
+        logger.info(JSON.stringify(response.request.options));
         logger.log("access", `${response.request.options.method} ${response.statusCode} ${response.isFromCache ? "(From Cache) " : ""}${response.requestUrl}`);
         return response;
       }
@@ -100,10 +99,12 @@ const customGot = got.extend({
       }
     ]
   },
-  mutableDefaults: true
 });
 
-export default got.extend(
-  customGot,
-  limitDownloadUpload,
-);
+export default customGot;
+
+const r = got("https://www.amazon.co.jp/dp/4535786674", { cache: cache });
+r.on('downloadProgress', (progress: Progress) => {
+  r.cancel();
+});
+r.catch(e => console.log(e));

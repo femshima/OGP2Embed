@@ -1,4 +1,4 @@
-import { Client, Intents, MessageEmbed, Message, PartialMessage, TextChannel, Permissions } from "discord.js";
+import { Client, Intents, MessageEmbed, Message, PartialMessage, TextChannel, Permissions, DMChannel, NewsChannel, ThreadChannel } from "discord.js";
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
   partials: ["MESSAGE", "REACTION"]
@@ -81,18 +81,16 @@ client.on("messageUpdate", async (before, after) => {
     } catch { }
   }
   msg.suppressEmbeds(false);
-  onMessage(msg, embedmsg);
+  if (embedmsg) {
+    onMessage(msg, embedmsg);
+  }
 });
 client.on("messageDelete", msg => {
   if (client.user && msg.author?.id === client.user.id) return;
   deleteMessage(msg);
 });
 
-async function onMessage(msg: Message, placeHolder?: Message | null) {
-  if (placeHolder === null) {
-    //messageUpdateかつボットが送信したEmbedが存在しない
-    return;
-  }
+async function onMessage(msg: Message, placeHolder?: Message) {
 
 
   if (msg.author.bot) return;
@@ -225,6 +223,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
     const y = "🇾";
     const n = "🇳";
 
+
     if (reaction.emoji.name !== bomb) return;
     if (
       !client.user || reaction.message.author?.id !== client.user.id ||
@@ -234,7 +233,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
     }
 
     //TODO: Cleaner type
-    const channel = await reaction.message.channel.fetch() as TextChannel;
+    const channel = await reaction.message.channel.fetch() as TextChannel | NewsChannel | ThreadChannel;
     const user_f = await user.fetch();
     const msg = await SentMessages.findOne({
       where: {

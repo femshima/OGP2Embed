@@ -12,10 +12,11 @@ const defaultContext = {
 }
 
 
-let cache = new Map();
+//let cache = new Map();
 
 const customGot = got.extend({
-  //cache: cache,
+  // Cache causes problem with cancel()
+  /*cache: cache,*/
   headers: {
     'user-agent': process.env.UserAgent
   },
@@ -102,9 +103,3 @@ const customGot = got.extend({
 });
 
 export default customGot;
-
-const r = got("https://www.amazon.co.jp/dp/4535786674", { cache: cache });
-r.on('downloadProgress', (progress: Progress) => {
-  r.cancel();
-});
-r.catch(e => console.log(e));

@@ -22,6 +22,7 @@ client.on("ready", () => {
   logger.info("Started!");
 });
 
+
 async function deleteMessage(msg: Message | PartialMessage) {
   if (client.user && msg.author?.id === client.user.id) {
     await SentMessages.destroy({
@@ -31,6 +32,7 @@ async function deleteMessage(msg: Message | PartialMessage) {
         messageId: msg.id,
       }
     });
+    !msg.deleted && msg.delete();
   } else {
     const target = await SentMessages.findOne({
       where: {
@@ -51,7 +53,6 @@ async function deleteMessage(msg: Message | PartialMessage) {
       }
     });
   }
-  msg.deletable && msg.delete();
   logger.debug(`deleted:${msg.id}`);
 }
 

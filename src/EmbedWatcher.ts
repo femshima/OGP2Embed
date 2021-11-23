@@ -18,7 +18,7 @@ export default class EmbedWatcher {
     constructor(message: watchedMessage<Message> | watchedMessage<PartialMessage>) {
         message._embeds = message.embeds;
         delete message.embeds;
-        const _this=this;
+        const _this = this;
         Object.defineProperty(message, "embeds", {
             set: function (newEmbeds) {
                 const oldEmbeds = this._embeds;
@@ -39,13 +39,19 @@ export default class EmbedWatcher {
             }
         })
     }
-    public waitForEmbed(): Promise<MessageEmbed[]> {
-        return new Promise(resolve => {
+    public waitForEmbed(timeout?: number): Promise<MessageEmbed[]> {
+        return new Promise((resolve, reject) => {
             const fn = (embeds: MessageEmbed[]) => {
                 this.handlers = this.handlers.filter(h => h !== fn);
                 resolve(embeds);
             }
             this.handlers.push(fn);
+            if (timeout) {
+                setTimeout(() => {
+                    this.handlers = this.handlers.filter(h => h !== fn);
+                    reject(new Error(`Timeout awaiting embed for ${timeout}ms`));
+                }, timeout);
+            }
         });
     }
 }

@@ -96,7 +96,12 @@ async function onMessage(msg: Message, placeHolder?: Message) {
   if (msg.author.bot) return;
 
   if (msg.embeds.length === 0) {
-    await EmbedWatcher.attach(msg).waitForEmbed();
+    const embedResult = await EmbedWatcher.attach(msg).waitForEmbed(300000)
+      .then(() => true)
+      .catch(() => false);
+    if (!embedResult) {
+      return;
+    }
   }
 
   const embeds = msg.embeds;
